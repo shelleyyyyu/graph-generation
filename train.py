@@ -25,7 +25,6 @@ from utils import *
 from model import *
 from data import *
 from args import Args
-import create_graphs
 
 
 def train_vae_epoch(epoch, args, rnn, output, data_loader,
@@ -51,9 +50,12 @@ def train_vae_epoch(epoch, args, rnn, output, data_loader,
         y_len = y_len.numpy().tolist()
         x = torch.index_select(x_unsorted,0,sort_index)
         y = torch.index_select(y_unsorted,0,sort_index)
-        x = Variable(x).cuda()
-        y = Variable(y).cuda()
-
+        if torch.cuda.is_available():
+            x = Variable(x).cuda()
+            y = Variable(y).cuda()
+        else:
+            x = Variable(x)
+            y = Variable(y)
         # if using ground truth to train
         h = rnn(x, pack=True, input_len=y_len)
         y_pred,z_mu,z_lsgms = output(h)
@@ -88,20 +90,19 @@ def train_vae_epoch(epoch, args, rnn, output, data_loader,
 
         if epoch % args.epochs_log==0 and batch_idx==0: # only output first batch's statistics
             print('Epoch: {}/{}, train bce loss: {:.6f}, train kl loss: {:.6f}, graph type: {}, num_layer: {}, hidden: {}'.format(
-                epoch, args.epochs,loss_bce.data[0], loss_kl.data[0], args.graph_type, args.num_layers, args.hidden_size_rnn))
+                epoch, args.epochs,loss_bce.data.item(), loss_kl.data.item(), args.graph_type, args.num_layers, args.hidden_size_rnn))
             print('z_mu_mean', z_mu_mean, 'z_mu_min', z_mu_min, 'z_mu_max', z_mu_max, 'z_sgm_mean', z_sgm_mean, 'z_sgm_min', z_sgm_min, 'z_sgm_max', z_sgm_max)
 
         # logging
-        log_value('bce_loss_'+args.fname, loss_bce.data[0], epoch*args.batch_ratio+batch_idx)
-        log_value('kl_loss_' +args.fname, loss_kl.data[0], epoch*args.batch_ratio + batch_idx)
+        log_value('bce_loss_'+args.fname, loss_bce.data.item(), epoch*args.batch_ratio+batch_idx)
+        log_value('kl_loss_' +args.fname, loss_kl.data.item(), epoch*args.batch_ratio + batch_idx)
         log_value('z_mu_mean_'+args.fname, z_mu_mean, epoch*args.batch_ratio + batch_idx)
         log_value('z_mu_min_'+args.fname, z_mu_min, epoch*args.batch_ratio + batch_idx)
         log_value('z_mu_max_'+args.fname, z_mu_max, epoch*args.batch_ratio + batch_idx)
         log_value('z_sgm_mean_'+args.fname, z_sgm_mean, epoch*args.batch_ratio + batch_idx)
         log_value('z_sgm_min_'+args.fname, z_sgm_min, epoch*args.batch_ratio + batch_idx)
         log_value('z_sgm_max_'+args.fname, z_sgm_max, epoch*args.batch_ratio + batch_idx)
-
-        loss_sum += loss.data[0]
+        loss_sum += loss.data.item()
     return loss_sum/(batch_idx+1)
 
 def test_vae_epoch(epoch, args, rnn, output, test_batch_size=16, save_histogram=False, sample_time = 1):
@@ -111,16 +112,24 @@ def test_vae_epoch(epoch, args, rnn, output, test_batch_size=16, save_histogram=
 
     # generate graphs
     max_num_node = int(args.max_num_node)
-    y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-    y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-    x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+    if torch.cuda.is_available():
+        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
+        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
+        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+    else:
+        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)) # normalized prediction score
+        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)) # discrete prediction
+        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node))
     for i in range(max_num_node):
         h = rnn(x_step)
         y_pred_step, _, _ = output(h)
         y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
         x_step = sample_sigmoid(y_pred_step, sample=True, sample_time=sample_time)
         y_pred_long[:, i:i + 1, :] = x_step
-        rnn.hidden = Variable(rnn.hidden.data).cuda()
+        if torch.cuda.is_available():
+            rnn.hidden = Variable(rnn.hidden.data).cuda()
+        else:
+            rnn.hidden = Variable(rnn.hidden.data)
     y_pred_data = y_pred.data
     y_pred_long_data = y_pred_long.data.long()
 
@@ -153,18 +162,26 @@ def test_vae_partial_epoch(epoch, args, rnn, output, data_loader, save_histogram
         rnn.hidden = rnn.init_hidden(test_batch_size)
         # generate graphs
         max_num_node = int(args.max_num_node)
-        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+        if torch.cuda.is_available():
+            y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
+            y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
+            x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+        else:
+            y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)) # normalized prediction score
+            y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)) # discrete prediction
+            x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node))
         for i in range(max_num_node):
             print('finish node',i)
             h = rnn(x_step)
             y_pred_step, _, _ = output(h)
             y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
-            x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:].cuda(), current=i, y_len=y_len, sample_time=sample_time)
-
+            if torch.cuda.is_available():
+                x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:], current=i, y_len=y_len, sample_time=sample_time).cuda()
+                rnn.hidden = Variable(rnn.hidden.data).cuda()
+            else:
+                x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:], current=i, y_len=y_len, sample_time=sample_time)
+                rnn.hidden = Variable(rnn.hidden.data)
             y_pred_long[:, i:i + 1, :] = x_step
-            rnn.hidden = Variable(rnn.hidden.data).cuda()
         y_pred_data = y_pred.data
         y_pred_long_data = y_pred_long.data.long()
 
@@ -385,48 +402,6 @@ def train_mlp_forward_epoch(epoch, args, rnn, output, data_loader):
 
         loss_sum += loss.data[0]
     return loss_sum/(batch_idx+1)
-
-
-
-
-
-## too complicated, deprecated
-# def test_mlp_partial_bfs_epoch(epoch, args, rnn, output, data_loader, save_histogram=False,sample_time=1):
-#     rnn.eval()
-#     output.eval()
-#     G_pred_list = []
-#     for batch_idx, data in enumerate(data_loader):
-#         x = data['x'].float()
-#         y = data['y'].float()
-#         y_len = data['len']
-#         test_batch_size = x.size(0)
-#         rnn.hidden = rnn.init_hidden(test_batch_size)
-#         # generate graphs
-#         max_num_node = int(args.max_num_node)
-#         y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-#         y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-#         x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
-#         for i in range(max_num_node):
-#             # 1 back up hidden state
-#             hidden_prev = Variable(rnn.hidden.data).cuda()
-#             h = rnn(x_step)
-#             y_pred_step = output(h)
-#             y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
-#             x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:].cuda(), current=i, y_len=y_len, sample_time=sample_time)
-#             y_pred_long[:, i:i + 1, :] = x_step
-#
-#             rnn.hidden = Variable(rnn.hidden.data).cuda()
-#
-#             print('finish node', i)
-#         y_pred_data = y_pred.data
-#         y_pred_long_data = y_pred_long.data.long()
-#
-#         # save graphs as pickle
-#         for i in range(test_batch_size):
-#             adj_pred = decode_adj(y_pred_long_data[i].cpu().numpy())
-#             G_pred = get_graph(adj_pred) # get a graph from zero-padded adj
-#             G_pred_list.append(G_pred)
-#     return G_pred_list
 
 
 def train_rnn_epoch(epoch, args, rnn, output, data_loader,
@@ -671,7 +646,7 @@ def train(args, dataset_train, rnn, output):
         if 'GraphRNN_VAE' in args.note:
             train_vae_epoch(epoch, args, rnn, output, dataset_train,
                             optimizer_rnn, optimizer_output,
-                            scheduler_rnn, scheduler_output)
+                            scheduler_rnn, scheduler_rnn)
         elif 'GraphRNN_MLP' in args.note:
             train_mlp_epoch(epoch, args, rnn, output, dataset_train,
                             optimizer_rnn, optimizer_output,

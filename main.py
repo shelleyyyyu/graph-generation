@@ -1,5 +1,5 @@
 from train import *
-
+import roc_data.data_process_keyword as roc_data
 if __name__ == '__main__':
     # All necessary arguments are defined in args.py
     args = Args()
@@ -11,6 +11,10 @@ if __name__ == '__main__':
         os.makedirs(args.model_save_path)
     if not os.path.isdir(args.graph_save_path):
         os.makedirs(args.graph_save_path)
+    if not os.path.isdir(args.graph_save_path + "/data"):
+        os.makedirs(args.graph_save_path + "/data")
+    if not os.path.isdir(args.figure_save_path + "/data"):
+        os.makedirs(args.figure_save_path + "/data")
     if not os.path.isdir(args.figure_save_path):
         os.makedirs(args.figure_save_path)
     if not os.path.isdir(args.timing_save_path):
@@ -27,15 +31,43 @@ if __name__ == '__main__':
             shutil.rmtree("tensorboard")
     configure("tensorboard/run"+time, flush_secs=5)
 
-    graphs = create_graphs.create(args)
+
+    train_filename = './rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.train'
+    valid_filename = './rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.dev'
+    test_filename = './rocstory_plan_write/ROCStories_all_merge_tokenize.titlesepkeysepstory.test'
+
+    if not args.toy:
+        train_all_story = roc_data.get_roc_graph(train_filename)
+        graphs_train = roc_data.process_graph(train_all_story)
+
+        valid_all_story = roc_data.get_roc_graph(valid_filename)
+        graphs_validate = roc_data.process_graph(valid_all_story)
+
+        test_all_story = roc_data.get_roc_graph(test_filename)
+        graphs_test = roc_data.process_graph(test_all_story)
+    else:
+        train_all_story = roc_data.get_roc_graph(train_filename)
+        graphs_train = roc_data.process_graph(train_all_story[:100])
+
+        valid_all_story = roc_data.get_roc_graph(valid_filename)
+        graphs_validate = roc_data.process_graph(valid_all_story[:10])
+
+        test_all_story = roc_data.get_roc_graph(test_filename)
+        graphs_test = roc_data.process_graph(test_all_story[:10])
+
+    #graphs_train = graphs
+    graphs = graphs_train + graphs_validate + graphs_test
+    
+
+    #graphs = create_graphs.create(args)
     
     # split datasets
-    random.seed(123)
-    shuffle(graphs)
-    graphs_len = len(graphs)
-    graphs_test = graphs[int(0.8 * graphs_len):]
-    graphs_train = graphs[0:int(0.8*graphs_len)]
-    graphs_validate = graphs[0:int(0.2*graphs_len)]
+    #random.seed(123)
+    #shuffle(graphs)
+    #graphs_len = len(graphs)
+    #graphs_test = graphs[int(0.8 * graphs_len):]
+    #graphs_train = graphs[0:int(0.8*graphs_len)]
+    #graphs_validate = graphs[0:int(0.2*graphs_len)]
 
     # if use pre-saved graphs
     # dir_input = "/dfs/scratch0/jiaxuany0/graphs/"
@@ -51,32 +83,35 @@ if __name__ == '__main__':
     for graph in graphs_validate:
         graph_validate_len += graph.number_of_nodes()
     graph_validate_len /= len(graphs_validate)
-    print('graph_validate_len', graph_validate_len)
+    #print('graph_validate_len', int(graph_validate_len))
 
     graph_test_len = 0
     for graph in graphs_test:
         graph_test_len += graph.number_of_nodes()
     graph_test_len /= len(graphs_test)
-    print('graph_test_len', graph_test_len)
-
-
-
+    #print('graph_test_len', int(graph_test_len))
+    #for g in graphs:
+    #    print(g.nodes())
+    #    print(g.number_of_nodes())
     args.max_num_node = max([graphs[i].number_of_nodes() for i in range(len(graphs))])
     max_num_edge = max([graphs[i].number_of_edges() for i in range(len(graphs))])
     min_num_edge = min([graphs[i].number_of_edges() for i in range(len(graphs))])
 
     # args.max_num_node = 2000
     # show graphs statistics
-    print('total graph num: {}, training set: {}'.format(len(graphs),len(graphs_train)))
+    print('training set: {}, validation set: {}, testing set: {}'.format(len(graphs_train),len(graphs_validate),len(graphs_test)))
     print('max number node: {}'.format(args.max_num_node))
     print('max/min number edge: {}; {}'.format(max_num_edge,min_num_edge))
     print('max previous node: {}'.format(args.max_prev_node))
 
     # save ground truth graphs
     ## To get train and test set, after loading you need to manually slice
-    save_graph_list(graphs, args.graph_save_path + args.fname_train + '0.dat')
-    save_graph_list(graphs, args.graph_save_path + args.fname_test + '0.dat')
-    print('train and test graphs saved at: ', args.graph_save_path + args.fname_test + '0.dat')
+    save_graph_list(graphs_train, args.graph_save_path + 'data/' + args.fname_train + '0.dat')
+    save_graph_list(graphs_validate, args.graph_save_path + 'data/' + args.fname_valid + '0.dat')
+    save_graph_list(graphs_test, args.graph_save_path + 'data/' + args.fname_test + '0.dat')
+    print('train graphs saved at: ', args.graph_save_path + 'data/' + args.fname_train + '0.dat')
+    print('validation graphs saved at: ', args.graph_save_path + 'data/' + args.fname_valid + '0.dat')
+    print('test graphs saved at: ', args.graph_save_path + 'data/' + args.fname_test + '0.dat')
 
     ### comment when normal training, for graph completion only
     # p = 0.5
@@ -90,7 +125,6 @@ if __name__ == '__main__':
         #     if np.random.rand()>p:
         #         graph.remove_edge(edge[0],edge[1])
 
-
     ### dataset initialization
     if 'nobfs' in args.note:
         print('nobfs')
@@ -102,21 +136,28 @@ if __name__ == '__main__':
         args.max_prev_node = args.max_num_node - 1
     else:
         dataset = Graph_sequence_sampler_pytorch(graphs_train,max_prev_node=args.max_prev_node,max_num_node=args.max_num_node)
+        args.max_prev_node = dataset.max_prev_node
     sample_strategy = torch.utils.data.sampler.WeightedRandomSampler([1.0 / len(dataset) for i in range(len(dataset))],
                                                                      num_samples=args.batch_size*args.batch_ratio, replacement=True)
     dataset_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers,
                                                sampler=sample_strategy)
-
     ### model initialization
     ## Graph RNN VAE model
     # lstm = LSTM_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_lstm,
     #                   hidden_size=args.hidden_size, num_layers=args.num_layers).cuda()
 
     if 'GraphRNN_VAE_conditional' in args.note:
-        rnn = GRU_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_rnn,
-                        hidden_size=args.hidden_size_rnn, num_layers=args.num_layers, has_input=True,
-                        has_output=False).cuda()
-        output = MLP_VAE_conditional_plain(h_size=args.hidden_size_rnn, embedding_size=args.embedding_size_output, y_size=args.max_prev_node).cuda()
+        if torch.cuda.is_available():
+            rnn = GRU_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_rnn,
+                            hidden_size=args.hidden_size_rnn, num_layers=args.num_layers, has_input=True,
+                            has_output=False).cuda()
+            output = MLP_VAE_conditional_plain(h_size=args.hidden_size_rnn, embedding_size=args.embedding_size_output, y_size=args.max_prev_node).cuda()
+        else:
+            rnn = GRU_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_rnn,
+                            hidden_size=args.hidden_size_rnn, num_layers=args.num_layers, has_input=True,
+                            has_output=False)
+            output = MLP_VAE_conditional_plain(h_size=args.hidden_size_rnn, embedding_size=args.embedding_size_output, y_size=args.max_prev_node)
+            
     elif 'GraphRNN_MLP' in args.note:
         rnn = GRU_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_rnn,
                         hidden_size=args.hidden_size_rnn, num_layers=args.num_layers, has_input=True,

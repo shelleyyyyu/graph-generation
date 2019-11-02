@@ -11,7 +11,7 @@ class Args():
         # The simple version of Graph RNN
         # self.note = 'GraphRNN_MLP'
         # The dependent Bernoulli sequence version of GraphRNN
-        self.note = 'GraphRNN_RNN'
+        self.note = 'GraphRNN_VAE_conditional'
 
         ## for comparison, removing the BFS compoenent
         # self.note = 'GraphRNN_MLP_nobfs'
@@ -100,11 +100,17 @@ class Args():
         # self.metric_baseline = 'degree'
         self.metric_baseline = 'clustering'
 
+        self.toy = False
+
 
         ### filenames to save intemediate and final outputs
         self.fname = self.note + '_' + self.graph_type + '_' + str(self.num_layers) + '_' + str(self.hidden_size_rnn) + '_'
+        self.fname_real = self.note+'_'+self.graph_type+'_'+str(self.num_layers)+'_'+ str(self.hidden_size_rnn)+'_real_'
         self.fname_pred = self.note+'_'+self.graph_type+'_'+str(self.num_layers)+'_'+ str(self.hidden_size_rnn)+'_pred_'
+        
         self.fname_train = self.note+'_'+self.graph_type+'_'+str(self.num_layers)+'_'+ str(self.hidden_size_rnn)+'_train_'
+        self.fname_valid = self.note + '_' + self.graph_type + '_' + str(self.num_layers) + '_' + str(self.hidden_size_rnn) + '_valid_'
         self.fname_test = self.note + '_' + self.graph_type + '_' + str(self.num_layers) + '_' + str(self.hidden_size_rnn) + '_test_'
+        
         self.fname_baseline = self.graph_save_path + self.graph_type + self.generator_baseline+'_'+self.metric_baseline
 

@@ -1,4 +1,8 @@
 tensorboard-logger
-tensorflow
-networkx==1.11
+networkx
+matplotlib
 pyemd
+torch
+sklearn
+community
+torchvision

@@ -107,8 +107,6 @@ def perturb(graph_list, p_del, p_add=None):
         perturbed_graph_list.append(G)
     return perturbed_graph_list
 
-
-
 def perturb_new(graph_list, p):
     ''' Perturb the list of graphs by adding/removing edges.
     Args:
@@ -137,10 +135,6 @@ def perturb_new(graph_list, p):
         perturbed_graph_list.append(G)
     return perturbed_graph_list
 
-
-
-
-
 def imsave(fname, arr, vmin=None, vmax=None, cmap=None, format=None, origin=None):
     from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
     from matplotlib.figure import Figure
@@ -150,7 +144,6 @@ def imsave(fname, arr, vmin=None, vmax=None, cmap=None, format=None, origin=None
     fig.figimage(arr, cmap=cmap, vmin=vmin, vmax=vmax, origin=origin)
     fig.savefig(fname, dpi=1, format=format)
 
-
 def save_prediction_histogram(y_pred_data, fname_pred, max_num_node, bin_n=20):
     bin_edge = np.linspace(1e-6, 1, bin_n + 1)
     output_pred = np.zeros((bin_n, max_num_node))
@@ -159,7 +152,6 @@ def save_prediction_histogram(y_pred_data, fname_pred, max_num_node, bin_n=20):
         # normalize
         output_pred[:, i] /= np.sum(output_pred[:, i])
     imsave(fname=fname_pred, arr=output_pred, origin='upper', cmap='Greys_r', vmin=0.0, vmax=3.0 / bin_n)
-
 
 # draw a single graph G
 def draw_graph(G, prefix = 'test'):
@@ -231,51 +223,52 @@ def draw_graph_list(G_list, row, col, fname = 'figures/test', layout='spring', i
     # rcParams['figure.figsize'] = 12,3
     plt.switch_backend('agg')
     for i,G in enumerate(G_list):
-        plt.subplot(row,col,i+1)
-        plt.subplots_adjust(left=0, bottom=0, right=1, top=1,
-                        wspace=0, hspace=0)
-        # if i%2==0:
-        #     plt.title('real nodes: '+str(G.number_of_nodes()), fontsize = 4)
-        # else:
-        #     plt.title('pred nodes: '+str(G.number_of_nodes()), fontsize = 4)
+        if G.number_of_nodes() != 0:
+            plt.subplot(row,col,i+1)
+            plt.subplots_adjust(left=0, bottom=0, right=1, top=1,
+                            wspace=0, hspace=0)
+            # if i%2==0:
+            #     plt.title('real nodes: '+str(G.number_of_nodes()), fontsize = 4)
+            # else:
+            #     plt.title('pred nodes: '+str(G.number_of_nodes()), fontsize = 4)
 
-        # plt.title('num of nodes: '+str(G.number_of_nodes()), fontsize = 4)
+            # plt.title('num of nodes: '+str(G.number_of_nodes()), fontsize = 4)
 
-        # parts = community.best_partition(G)
-        # values = [parts.get(node) for node in G.nodes()]
-        # colors = []
-        # for i in range(len(values)):
-        #     if values[i] == 0:
-        #         colors.append('red')
-        #     if values[i] == 1:
-        #         colors.append('green')
-        #     if values[i] == 2:
-        #         colors.append('blue')
-        #     if values[i] == 3:
-        #         colors.append('yellow')
-        #     if values[i] == 4:
-        #         colors.append('orange')
-        #     if values[i] == 5:
-        #         colors.append('pink')
-        #     if values[i] == 6:
-        #         colors.append('black')
-        plt.axis("off")
-        if layout=='spring':
-            pos = nx.spring_layout(G,k=k/np.sqrt(G.number_of_nodes()),iterations=100)
-            # pos = nx.spring_layout(G)
+            # parts = community.best_partition(G)
+            # values = [parts.get(node) for node in G.nodes()]
+            # colors = []
+            # for i in range(len(values)):
+            #     if values[i] == 0:
+            #         colors.append('red')
+            #     if values[i] == 1:
+            #         colors.append('green')
+            #     if values[i] == 2:
+            #         colors.append('blue')
+            #     if values[i] == 3:
+            #         colors.append('yellow')
+            #     if values[i] == 4:
+            #         colors.append('orange')
+            #     if values[i] == 5:
+            #         colors.append('pink')
+            #     if values[i] == 6:
+            #         colors.append('black')
+            #plt.axis("off")
+            if layout=='spring':
+                pos = nx.spring_layout(G,k=k/np.sqrt(G.number_of_nodes()),iterations=100)
+                # pos = nx.spring_layout(G)
 
-        elif layout=='spectral':
-            pos = nx.spectral_layout(G)
-        # # nx.draw_networkx(G, with_labels=True, node_size=2, width=0.15, font_size = 1.5, node_color=colors,pos=pos)
-        # nx.draw_networkx(G, with_labels=False, node_size=1.5, width=0.2, font_size = 1.5, linewidths=0.2, node_color = 'k',pos=pos,alpha=0.2)
+            elif layout=='spectral':
+                pos = nx.spectral_layout(G)
+            # # nx.draw_networkx(G, with_labels=True, node_size=2, width=0.15, font_size = 1.5, node_color=colors,pos=pos)
+            # nx.draw_networkx(G, with_labels=False, node_size=1.5, width=0.2, font_size = 1.5, linewidths=0.2, node_color = 'k',pos=pos,alpha=0.2)
 
-        if is_single:
-            # node_size default 60, edge_width default 1.5
-            nx.draw_networkx_nodes(G, pos, node_size=node_size, node_color='#336699', alpha=1, linewidths=0, font_size=0)
-            nx.draw_networkx_edges(G, pos, alpha=alpha, width=width)
-        else:
-            nx.draw_networkx_nodes(G, pos, node_size=1.5, node_color='#336699',alpha=1, linewidths=0.2, font_size = 1.5)
-            nx.draw_networkx_edges(G, pos, alpha=0.3,width=0.2)
+            if is_single:
+                # node_size default 60, edge_width default 1.5
+                nx.draw_networkx_nodes(G, pos, node_size=node_size, node_color='#336699', alpha=1, linewidths=0, font_size=0)
+                nx.draw_networkx_edges(G, pos, alpha=alpha, width=width)
+            else:
+                nx.draw_networkx_nodes(G, pos, node_size=1.5, node_color='#336699',alpha=1, linewidths=0.2, font_size = 1.5)
+                nx.draw_networkx_edges(G, pos, alpha=0.3,width=0.2)
 
         # plt.axis('off')
         # plt.title('Complete Graph of Odd-degree Nodes')
@@ -457,18 +450,21 @@ def pick_connected_component_new(G):
     return G
 
 # load a list of graphs
-def load_graph_list(fname,is_real=True):
+def load_graph_list(fname,is_real=False):
     with open(fname, "rb") as f:
         graph_list = pickle.load(f)
-    for i in range(len(graph_list)):
-        edges_with_selfloops = graph_list[i].selfloop_edges()
-        if len(edges_with_selfloops)>0:
-            graph_list[i].remove_edges_from(edges_with_selfloops)
-        if is_real:
-            graph_list[i] = max(nx.connected_component_subgraphs(graph_list[i]), key=len)
-            graph_list[i] = nx.convert_node_labels_to_integers(graph_list[i])
-        else:
-            graph_list[i] = pick_connected_component_new(graph_list[i])
+    #for i in range(len(graph_list)):
+        # need to check if have edges_with_selfloops
+        #edges_with_selfloops = graph_list[i].selfloop_edges()
+        #if len(edges_with_selfloops)>0:
+        #    graph_list[i].remove_edges_from(edges_with_selfloops)
+        #if is_real:
+        #    g_list = list(graph_list[i].subgraph(c).copy() for c in nx.connected_components(graph_list[i]))
+        #    if g_list != []:
+        #        graph_list[i] = max(g_list, key=len)
+        #        graph_list[i] = nx.convert_node_labels_to_integers(graph_list[i])
+        #else:
+        #    graph_list[i] = pick_connected_component_new(graph_list[i])
     return graph_list
 
 
