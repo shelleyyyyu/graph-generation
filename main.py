@@ -3,9 +3,9 @@ import roc_data.data_process_keyword as roc_data
 if __name__ == '__main__':
     # All necessary arguments are defined in args.py
     args = Args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.cuda)
-    print('CUDA', args.cuda)
-    print('File name prefix',args.fname)
+    #os.environ['CUDA_VISIBLE_DEVICES'] = str(args.cuda)
+    #print('CUDA', args.cuda)
+    #print('File name prefix',args.fname)
     # check if necessary directories exist
     if not os.path.isdir(args.model_save_path):
         os.makedirs(args.model_save_path)
