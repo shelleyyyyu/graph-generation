@@ -44,7 +44,7 @@ def process_graph(all_story):
 
 def get_roc_graph(path):
 	all_story = []
-	with open (path, 'r') as file:
+	with open (path, 'r', encodeing='utf-8') as file:
 		stories = file.readlines()
 		for story in stories:
 			story_dict = {}
