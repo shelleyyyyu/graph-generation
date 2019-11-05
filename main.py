@@ -3,9 +3,6 @@ import roc_data.data_process_keyword as roc_data
 if __name__ == '__main__':
     # All necessary arguments are defined in args.py
     args = Args()
-    #os.environ['CUDA_VISIBLE_DEVICES'] = str(args.cuda)
-    #print('CUDA', args.cuda)
-    #print('File name prefix',args.fname)
     # check if necessary directories exist
     if not os.path.isdir(args.model_save_path):
         os.makedirs(args.model_save_path)
@@ -56,52 +53,53 @@ if __name__ == '__main__':
         graphs_test = roc_data.process_graph(test_all_story[:10])
 
     #graphs_train = graphs
-    graphs = graphs_train + graphs_validate + graphs_test
-    
+    all_story = train_all_story + valid_all_story + test_all_story
 
-    #graphs = create_graphs.create(args)
-    
-    # split datasets
-    #random.seed(123)
-    #shuffle(graphs)
-    #graphs_len = len(graphs)
-    #graphs_test = graphs[int(0.8 * graphs_len):]
-    #graphs_train = graphs[0:int(0.8*graphs_len)]
-    #graphs_validate = graphs[0:int(0.2*graphs_len)]
-
-    # if use pre-saved graphs
-    # dir_input = "/dfs/scratch0/jiaxuany0/graphs/"
-    # fname_test = dir_input + args.note + '_' + args.graph_type + '_' + str(args.num_layers) + '_' + str(
-    #     args.hidden_size_rnn) + '_test_' + str(0) + '.dat'
-    # graphs = load_graph_list(fname_test, is_real=True)
-    # graphs_test = graphs[int(0.8 * graphs_len):]
-    # graphs_train = graphs[0:int(0.8 * graphs_len)]
-    # graphs_validate = graphs[int(0.2 * graphs_len):int(0.4 * graphs_len)]
-
-
-    graph_validate_len = 0
-    for graph in graphs_validate:
-        graph_validate_len += graph.number_of_nodes()
-    graph_validate_len /= len(graphs_validate)
+    #graph_validate_len = 0
+    #for graph in graphs_validate:
+    #    graph_validate_len += graph.number_of_nodes()
+    #graph_validate_len /= len(graphs_validate)
     #print('graph_validate_len', int(graph_validate_len))
 
-    graph_test_len = 0
-    for graph in graphs_test:
-        graph_test_len += graph.number_of_nodes()
-    graph_test_len /= len(graphs_test)
+    #graph_test_len = 0
+    #for graph in graphs_test:
+    #    graph_test_len += graph.number_of_nodes()
+    #graph_test_len /= len(graphs_test)
     #print('graph_test_len', int(graph_test_len))
+    
     #for g in graphs:
     #    print(g.nodes())
     #    print(g.number_of_nodes())
+
+    # filter those imcomplete graphs
+    graphs_new_train, graphs_new_validate, graphs_new_test = [],[],[]
+    for g in graphs_train:
+        if g.number_of_nodes() == 10:
+            graphs_new_train.append(g)
+    for g in graphs_validate:
+        if g.number_of_nodes() == 10:
+            graphs_new_validate.append(g)
+    for g in graphs_test:
+        if g.number_of_nodes() == 10:
+            graphs_new_test.append(g)
+
+    graphs = graphs_new_train + graphs_new_validate + graphs_new_test
+
+
     args.max_num_node = max([graphs[i].number_of_nodes() for i in range(len(graphs))])
+    args.min_num_node = min([graphs[i].number_of_nodes() for i in range(len(graphs))])
     max_num_edge = max([graphs[i].number_of_edges() for i in range(len(graphs))])
     min_num_edge = min([graphs[i].number_of_edges() for i in range(len(graphs))])
+    
+    graphs_train = graphs_new_train
+    graphs_validate = graphs_new_validate
+    graphs_test = graphs_new_test
 
     # args.max_num_node = 2000
     # show graphs statistics
     print('training set: {}, validation set: {}, testing set: {}'.format(len(graphs_train),len(graphs_validate),len(graphs_test)))
-    print('max number node: {}'.format(args.max_num_node))
-    print('max/min number edge: {}; {}'.format(max_num_edge,min_num_edge))
+    print('max/min number node: {} / {}'.format(args.max_num_node, args.min_num_node))
+    print('max/min number edge: {} / {}'.format(max_num_edge,min_num_edge))
     print('max previous node: {}'.format(args.max_prev_node))
 
     # save ground truth graphs
@@ -137,6 +135,7 @@ if __name__ == '__main__':
     else:
         dataset = Graph_sequence_sampler_pytorch(graphs_train,max_prev_node=args.max_prev_node,max_num_node=args.max_num_node)
         args.max_prev_node = dataset.max_prev_node
+    
     sample_strategy = torch.utils.data.sampler.WeightedRandomSampler([1.0 / len(dataset) for i in range(len(dataset))],
                                                                      num_samples=args.batch_size*args.batch_ratio, replacement=True)
     dataset_loader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, num_workers=args.num_workers,

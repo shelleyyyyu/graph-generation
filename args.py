@@ -70,9 +70,9 @@ class Args():
         self.epochs_log = 100
         self.epochs_save = 100
 
-        self.lr = 0.003
+        self.lr = 0.001
         self.milestones = [400, 1000]
-        self.lr_rate = 0.3
+        self.lr_rate = 0.1
 
         self.sample_time = 2 # sample time in each time step, when validating
 

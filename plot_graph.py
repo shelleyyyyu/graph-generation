@@ -28,16 +28,16 @@ for num in range(int(group_num)):
     draw_graph_list(train_graph_list[num*25:(num+1)*25], row=5, col=5, fname=train_graph_fname + "_" + str(num) + "_")
 
 group_num = len(valid_graph_list) / 25
-if group_num == 0:
+if group_num != 0:
     for num in range(int(group_num)):
-        draw_graph_list(valid_graph_list, row=5, col=5, fname=valid_graph_fname + "_" + str(num) + "_")
+        draw_graph_list(valid_graph_list[num*25:(num+1)*25], row=5, col=5, fname=valid_graph_fname + "_" + str(num) + "_")
 else:
     draw_graph_list(valid_graph_list, row=5, col=5, fname=valid_graph_fname)
 
 group_num = len(test_graph_list) / 25
-if group_num == 0:
+if group_num != 0:
     for num in range(int(group_num)):
-        draw_graph_list(test_graph_list, row=5, col=5, fname=test_graph_fname + "_" + str(num) + "_")
+        draw_graph_list(test_graph_list[num*25:(num+1)*25], row=5, col=5, fname=test_graph_fname + "_" + str(num) + "_")
 else:
     draw_graph_list(test_graph_list, row=5, col=5, fname=test_graph_fname)
 
