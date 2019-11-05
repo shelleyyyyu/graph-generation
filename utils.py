@@ -426,6 +426,19 @@ def get_graph(adj):
     G = nx.from_numpy_matrix(adj)
     return G
 
+def get_graph_no_remove(adj):
+    '''
+    get a graph from zero-padded adj
+    :param adj:
+    :return:
+    '''
+    # remove all zeros rows and columns
+    #adj = adj[~np.all(adj == 0, axis=1)]
+    #adj = adj[:, ~np.all(adj == 0, axis=0)]
+    adj = np.asmatrix(adj)
+    G = nx.from_numpy_matrix(adj)
+    return G
+
 # save a list of graphs
 def save_graph_list(G_list, fname):
     with open(fname, "wb") as f:

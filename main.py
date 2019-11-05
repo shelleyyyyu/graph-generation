@@ -124,17 +124,17 @@ if __name__ == '__main__':
         #         graph.remove_edge(edge[0],edge[1])
 
     ### dataset initialization
-    if 'nobfs' in args.note:
-        print('nobfs')
-        dataset = Graph_sequence_sampler_pytorch_nobfs(graphs_train, max_num_node=args.max_num_node)
-        args.max_prev_node = args.max_num_node-1
-    if 'barabasi_noise' in args.graph_type:
-        print('barabasi_noise')
-        dataset = Graph_sequence_sampler_pytorch_canonical(graphs_train,max_prev_node=args.max_prev_node)
-        args.max_prev_node = args.max_num_node - 1
-    else:
-        dataset = Graph_sequence_sampler_pytorch(graphs_train,max_prev_node=args.max_prev_node,max_num_node=args.max_num_node)
-        args.max_prev_node = dataset.max_prev_node
+    #if 'nobfs' in args.note:
+    #    print('nobfs')
+    #    dataset = Graph_sequence_sampler_pytorch_nobfs(graphs_train, max_num_node=args.max_num_node)
+    #    args.max_prev_node = args.max_num_node-1
+    #if 'barabasi_noise' in args.graph_type:
+    #    print('barabasi_noise')
+    #    dataset = Graph_sequence_sampler_pytorch_canonical(graphs_train,max_prev_node=args.max_prev_node)
+    #    args.max_prev_node = args.max_num_node - 1
+    #else:
+    dataset = Graph_sequence_sampler_pytorch(graphs_train,max_prev_node=args.max_prev_node,max_num_node=args.max_num_node)
+    args.max_prev_node = dataset.max_prev_node
     
     sample_strategy = torch.utils.data.sampler.WeightedRandomSampler([1.0 / len(dataset) for i in range(len(dataset))],
                                                                      num_samples=args.batch_size*args.batch_ratio, replacement=True)

@@ -137,7 +137,7 @@ def test_vae_epoch(epoch, args, rnn, output, test_batch_size=16, save_histogram=
     G_pred_list = []
     for i in range(test_batch_size):
         adj_pred = decode_adj(y_pred_long_data[i].cpu().numpy())
-        G_pred = get_graph(adj_pred) # get a graph from zero-padded adj
+        G_pred = get_graph_no_remove(adj_pred) # get a graph from zero-padded adj
         G_pred_list.append(G_pred)
 
     # save prediction histograms, plot histogram over each time step
@@ -191,7 +191,6 @@ def test_vae_partial_epoch(epoch, args, rnn, output, data_loader, save_histogram
             G_pred = get_graph(adj_pred) # get a graph from zero-padded adj
             G_pred_list.append(G_pred)
     return G_pred_list
-
 
 
 def train_mlp_epoch(epoch, args, rnn, output, data_loader,
@@ -281,7 +280,6 @@ def test_mlp_epoch(epoch, args, rnn, output, test_batch_size=16, save_histogram=
     #                           fname_pred=args.figure_prediction_save_path+args.fname_pred+str(epoch)+'.jpg',
     #                           max_num_node=max_num_node)
     return G_pred_list
-
 
 
 def test_mlp_partial_epoch(epoch, args, rnn, output, data_loader, save_histogram=False,sample_time=1):
@@ -494,7 +492,6 @@ def train_rnn_epoch(epoch, args, rnn, output, data_loader,
     return loss_sum/(batch_idx+1)
 
 
-
 def test_rnn_epoch(epoch, args, rnn, output, test_batch_size=16):
     rnn.hidden = rnn.init_hidden(test_batch_size)
     rnn.eval()
@@ -529,8 +526,6 @@ def test_rnn_epoch(epoch, args, rnn, output, test_batch_size=16):
         G_pred_list.append(G_pred)
 
     return G_pred_list
-
-
 
 
 def train_rnn_forward_epoch(epoch, args, rnn, output, data_loader):
