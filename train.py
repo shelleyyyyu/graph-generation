@@ -120,7 +120,7 @@ def test_vae_epoch(epoch, args, rnn, output, test_batch_size=16, save_histogram=
         y_pred = Variable(torch.zeros(test_batch_size, args.max_prev_node, args.max_prev_node)) # normalized prediction score
         y_pred_long = Variable(torch.zeros(test_batch_size, args.max_prev_node, args.max_prev_node)) # discrete prediction
         x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node))
-    for i in range(max_num_node):
+    for i in range(args.max_prev_node):
         h = rnn(x_step)
         y_pred_step, _, _ = output(h)
         y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
