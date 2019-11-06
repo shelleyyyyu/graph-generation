@@ -145,7 +145,7 @@ if __name__ == '__main__':
     # lstm = LSTM_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_lstm,
     #                   hidden_size=args.hidden_size, num_layers=args.num_layers).cuda()
 
-    if 'GraphRNN_VAE_conditional' in args.note:
+    if 'GraphRNN_VAE' in args.note:
         if torch.cuda.is_available():
             rnn = GRU_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_rnn,
                             hidden_size=args.hidden_size_rnn, num_layers=args.num_layers, has_input=True,
@@ -163,12 +163,20 @@ if __name__ == '__main__':
                         has_output=False).cuda()
         output = MLP_plain(h_size=args.hidden_size_rnn, embedding_size=args.embedding_size_output, y_size=args.max_prev_node).cuda()
     elif 'GraphRNN_RNN' in args.note:
-        rnn = GRU_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_rnn,
-                        hidden_size=args.hidden_size_rnn, num_layers=args.num_layers, has_input=True,
-                        has_output=True, output_size=args.hidden_size_rnn_output).cuda()
-        output = GRU_plain(input_size=1, embedding_size=args.embedding_size_rnn_output,
-                           hidden_size=args.hidden_size_rnn_output, num_layers=args.num_layers, has_input=True,
-                           has_output=True, output_size=1).cuda()
+        if torch.cuda.is_available():
+            rnn = GRU_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_rnn,
+                            hidden_size=args.hidden_size_rnn, num_layers=args.num_layers, has_input=True,
+                            has_output=True, output_size=args.hidden_size_rnn_output).cuda()
+            output = GRU_plain(input_size=1, embedding_size=args.embedding_size_rnn_output,
+                               hidden_size=args.hidden_size_rnn_output, num_layers=args.num_layers, has_input=True,
+                               has_output=True, output_size=1).cuda()
+        else:
+            rnn = GRU_plain(input_size=args.max_prev_node, embedding_size=args.embedding_size_rnn,
+                            hidden_size=args.hidden_size_rnn, num_layers=args.num_layers, has_input=True,
+                            has_output=True, output_size=args.hidden_size_rnn_output)
+            output = GRU_plain(input_size=1, embedding_size=args.embedding_size_rnn_output,
+                               hidden_size=args.hidden_size_rnn_output, num_layers=args.num_layers, has_input=True,
+                               has_output=True, output_size=1)
 
     ### start training
     train(args, dataset_loader, rnn, output)

@@ -11,7 +11,7 @@ class Args():
         # The simple version of Graph RNN
         # self.note = 'GraphRNN_MLP'
         # The dependent Bernoulli sequence version of GraphRNN
-        self.note = 'GraphRNN_VAE_conditional'
+        self.note = 'GraphRNN_VAE'
 
         ## for comparison, removing the BFS compoenent
         # self.note = 'GraphRNN_MLP_nobfs'

@@ -425,88 +425,13 @@ class Graph_sequence_sampler_pytorch(torch.utils.data.Dataset):
         start_idx = np.random.randint(adj_copy.shape[0])
         x_idx = np.array(bfs_seq(G, start_idx))
         adj_copy = adj_copy[np.ix_(x_idx, x_idx)]
+        len_batch = adj_copy.shape[0]
         adj_encoded = encode_adj(adj_copy.copy(), max_prev_node=self.max_prev_node)
         # get x and y and adj
         # for small graph the rest are zero padded
         y_batch[0:adj_encoded.shape[0], :] = adj_encoded
         x_batch[1:adj_encoded.shape[0] + 1, :] = adj_encoded
         return {'x':x_batch,'y':y_batch, 'len':len_batch}
-    '''def __getitem__(self, idx):
-        if idx == 0:
-            print("-----------xdskhchskcjkscjkds-----------")
-            adj_copy = self.adj_all[idx].copy()
-            print("--------adj_copy----------")
-            print(adj_copy)
-            x_batch = np.zeros((self.n, self.max_prev_node))  # here zeros are padded for small graph
-            print("--------x_batch----------")
-            print(x_batch)
-            x_batch[0,:] = 1 # the first input token is all ones
-            print("--------x_batch----------")
-            print(x_batch)
-            y_batch = np.zeros((self.n, self.max_prev_node))  # here zeros are padded for small graph
-            print("--------y_batch----------")
-            print(y_batch)
-            # generate input x, y pairs
-            len_batch = adj_copy.shape[0]
-            print("--------len_batch----------")
-            print(len_batch)
-            x_idx = np.random.permutation(adj_copy.shape[0])
-            print("--------x_idx----------")
-            print(x_idx)
-            adj_copy = adj_copy[np.ix_(x_idx, x_idx)]
-            print("--------adj_copy----------")
-            print(adj_copy)
-            adj_copy_matrix = np.asmatrix(adj_copy)
-            print("--------adj_copy_matrix----------")
-            print(adj_copy_matrix)
-            G = nx.from_numpy_matrix(adj_copy_matrix)
-            print("------edges------")
-            print(G.edges())
-            print("------nodes------")
-            print(G.nodes())
-            # then do bfs in the permuted G
-            start_idx = np.random.randint(adj_copy.shape[0])
-            print("--------start_idx----------")
-            print(start_idx)
-            x_idx = np.array(bfs_seq(G, start_idx))
-            print("--------x_idx----------")
-            print(x_idx)
-            adj_copy = adj_copy[np.ix_(x_idx, x_idx)]
-            print("--------adj_copy----------")
-            print(adj_copy)
-            adj_encoded = encode_adj(adj_copy.copy(), max_prev_node=self.max_prev_node)
-            print("--------adj_encoded----------")
-            print(adj_encoded)
-            # get x and y and adj
-            # for small graph the rest are zero padded
-            y_batch[0:adj_encoded.shape[0], :] = adj_encoded
-            x_batch[1:adj_encoded.shape[0] + 1, :] = adj_encoded
-            print("--------x_batch----------")
-            print(x_batch)
-            print("--------y_batch----------")
-            print(y_batch)
-            print("-----------xdskhchskcjkscjkds-----------")
-        else:
-            adj_copy = self.adj_all[idx].copy()
-            x_batch = np.zeros((self.n, self.max_prev_node))  # here zeros are padded for small graph
-            x_batch[0,:] = 1 # the first input token is all ones
-            y_batch = np.zeros((self.n, self.max_prev_node))  # here zeros are padded for small graph
-            # generate input x, y pairs
-            len_batch = adj_copy.shape[0]
-            x_idx = np.random.permutation(adj_copy.shape[0])
-            adj_copy = adj_copy[np.ix_(x_idx, x_idx)]
-            adj_copy_matrix = np.asmatrix(adj_copy)
-            G = nx.from_numpy_matrix(adj_copy_matrix)
-            # then do bfs in the permuted G
-            start_idx = np.random.randint(adj_copy.shape[0])
-            x_idx = np.array(bfs_seq(G, start_idx))
-            adj_copy = adj_copy[np.ix_(x_idx, x_idx)]
-            adj_encoded = encode_adj(adj_copy.copy(), max_prev_node=self.max_prev_node)
-            # get x and y and adj
-            # for small graph the rest are zero padded
-            y_batch[0:adj_encoded.shape[0], :] = adj_encoded
-            x_batch[1:adj_encoded.shape[0] + 1, :] = adj_encoded
-        return {'x':x_batch,'y':y_batch, 'len':len_batch}'''
 
     def calc_max_prev_node(self, iter=20000,topk=10):
         max_prev_node = []

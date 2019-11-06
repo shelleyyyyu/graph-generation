@@ -159,13 +159,19 @@ def sample_sigmoid_supervised(y_pred, y, current, y_len, sample_time=2):
     # do sigmoid first
     y_pred = F.sigmoid(y_pred)
     # do sampling
-    y_result = Variable(torch.rand(y_pred.size(0), y_pred.size(1), y_pred.size(2))).cuda()
+    if torch.cuda.is_available():
+        y_result = Variable(torch.rand(y_pred.size(0), y_pred.size(1), y_pred.size(2))).cuda()
+    else:
+        y_result = Variable(torch.rand(y_pred.size(0), y_pred.size(1), y_pred.size(2)))
     # loop over all batches
     for i in range(y_result.size(0)):
         # using supervision
         if current<y_len[i]:
             while True:
-                y_thresh = Variable(torch.rand(y_pred.size(1), y_pred.size(2))).cuda()
+                if torch.cuda.is_available():
+                    y_thresh = Variable(torch.rand(y_pred.size(1), y_pred.size(2))).cuda()
+                else:
+                    y_thresh = Variable(torch.rand(y_pred.size(1), y_pred.size(2)))
                 y_result[i] = torch.gt(y_pred[i], y_thresh).float()
                 # print('current',current)
                 # print('y_result',y_result[i].data)
@@ -177,7 +183,10 @@ def sample_sigmoid_supervised(y_pred, y, current, y_len, sample_time=2):
         else:
             # do 'multi_sample' times sampling
             for j in range(sample_time):
-                y_thresh = Variable(torch.rand(y_pred.size(1), y_pred.size(2))).cuda()
+                if torch.cuda.is_available():
+                    y_thresh = Variable(torch.rand(y_pred.size(1), y_pred.size(2))).cuda()
+                else:
+                    y_thresh = Variable(torch.rand(y_pred.size(1), y_pred.size(2)))
                 y_result[i] = torch.gt(y_pred[i], y_thresh).float()
                 if (torch.sum(y_result[i]).data>0).any():
                     break

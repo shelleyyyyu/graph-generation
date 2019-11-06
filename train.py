@@ -113,12 +113,12 @@ def test_vae_epoch(epoch, args, rnn, output, test_batch_size=16, save_histogram=
     # generate graphs
     max_num_node = int(args.max_num_node)
     if torch.cuda.is_available():
-        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
+        y_pred = Variable(torch.zeros(test_batch_size, args.max_prev_node, args.max_prev_node)).cuda() # normalized prediction score
+        y_pred_long = Variable(torch.zeros(test_batch_size, args.max_prev_node, args.max_prev_node)).cuda() # discrete prediction
         x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
     else:
-        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)) # normalized prediction score
-        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)) # discrete prediction
+        y_pred = Variable(torch.zeros(test_batch_size, args.max_prev_node, args.max_prev_node)) # normalized prediction score
+        y_pred_long = Variable(torch.zeros(test_batch_size, args.max_prev_node, args.max_prev_node)) # discrete prediction
         x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node))
     for i in range(max_num_node):
         h = rnn(x_step)
@@ -171,7 +171,7 @@ def test_vae_partial_epoch(epoch, args, rnn, output, data_loader, save_histogram
             y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)) # discrete prediction
             x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node))
         for i in range(max_num_node):
-            print('finish node',i)
+            #print('finish node',i)
             h = rnn(x_step)
             y_pred_step, _, _ = output(h)
             y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
@@ -188,7 +188,7 @@ def test_vae_partial_epoch(epoch, args, rnn, output, data_loader, save_histogram
         # save graphs as pickle
         for i in range(test_batch_size):
             adj_pred = decode_adj(y_pred_long_data[i].cpu().numpy())
-            G_pred = get_graph(adj_pred) # get a graph from zero-padded adj
+            G_pred = get_graph_no_remove(adj_pred) # get a graph from zero-padded adj
             G_pred_list.append(G_pred)
     return G_pred_list
 
@@ -445,10 +445,16 @@ def train_rnn_epoch(epoch, args, rnn, output, data_loader,
             count_temp = np.sum(output_y_len_bin[i:]) # count how many y_len is above i
             output_y_len.extend([min(i,y.size(2))]*count_temp) # put them in output_y_len; max value should not exceed y.size(2)
         # pack into variable
-        x = Variable(x).cuda()
-        y = Variable(y).cuda()
-        output_x = Variable(output_x).cuda()
-        output_y = Variable(output_y).cuda()
+        if torch.cuda.is_available():
+            x = Variable(x).cuda()
+            y = Variable(y).cuda()
+            output_x = Variable(output_x).cuda()
+            output_y = Variable(output_y).cuda()
+        else:
+            x = Variable(x)
+            y = Variable(y)
+            output_x = Variable(output_x)
+            output_y = Variable(output_y)
         # print(output_y_len)
         # print('len',len(output_y_len))
         # print('y',y.size())
@@ -460,9 +466,15 @@ def train_rnn_epoch(epoch, args, rnn, output, data_loader,
         h = pack_padded_sequence(h,y_len,batch_first=True).data # get packed hidden vector
         # reverse h
         idx = [i for i in range(h.size(0) - 1, -1, -1)]
-        idx = Variable(torch.LongTensor(idx)).cuda()
+        if torch.cuda.is_available():
+            idx = Variable(torch.LongTensor(idx)).cuda()
+        else:
+            idx = Variable(torch.LongTensor(idx))
         h = h.index_select(0, idx)
-        hidden_null = Variable(torch.zeros(args.num_layers-1, h.size(0), h.size(1))).cuda()
+        if torch.cuda.is_available():
+            hidden_null = Variable(torch.zeros(args.num_layers-1, h.size(0), h.size(1))).cuda()
+        else:
+            hidden_null = Variable(torch.zeros(args.num_layers-1, h.size(0), h.size(1)))
         output.hidden = torch.cat((h.view(1,h.size(0),h.size(1)),hidden_null),dim=0) # num_layers, batch_size, hidden_size
         y_pred = output(output_x, pack=True, input_len=output_y_len)
         y_pred = F.sigmoid(y_pred)
@@ -483,12 +495,12 @@ def train_rnn_epoch(epoch, args, rnn, output, data_loader,
 
         if epoch % args.epochs_log==0 and batch_idx==0: # only output first batch's statistics
             print('Epoch: {}/{}, train loss: {:.6f}, graph type: {}, num_layer: {}, hidden: {}'.format(
-                epoch, args.epochs,loss.data[0], args.graph_type, args.num_layers, args.hidden_size_rnn))
+                epoch, args.epochs,loss.data.item(), args.graph_type, args.num_layers, args.hidden_size_rnn))
 
         # logging
-        log_value('loss_'+args.fname, loss.data[0], epoch*args.batch_ratio+batch_idx)
+        log_value('loss_'+args.fname, loss.data.item(), epoch*args.batch_ratio+batch_idx)
         feature_dim = y.size(1)*y.size(2)
-        loss_sum += loss.data[0]*feature_dim
+        loss_sum += loss.data.item()*feature_dim
     return loss_sum/(batch_idx+1)
 
 
@@ -499,23 +511,42 @@ def test_rnn_epoch(epoch, args, rnn, output, test_batch_size=16):
 
     # generate graphs
     max_num_node = int(args.max_num_node)
-    y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-    x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+    if torch.cuda.is_available():
+        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
+        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+    else:
+        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)) # discrete prediction
+        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node))
+
     for i in range(max_num_node):
         h = rnn(x_step)
         # output.hidden = h.permute(1,0,2)
-        hidden_null = Variable(torch.zeros(args.num_layers - 1, h.size(0), h.size(2))).cuda()
+        if torch.cuda.is_available():
+            hidden_null = Variable(torch.zeros(args.num_layers - 1, h.size(0), h.size(2))).cuda()
+        else:
+            hidden_null = Variable(torch.zeros(args.num_layers - 1, h.size(0), h.size(2)))
         output.hidden = torch.cat((h.permute(1,0,2), hidden_null),
                                   dim=0)  # num_layers, batch_size, hidden_size
-        x_step = Variable(torch.zeros(test_batch_size,1,args.max_prev_node)).cuda()
-        output_x_step = Variable(torch.ones(test_batch_size,1,1)).cuda()
+        if torch.cuda.is_available():
+            x_step = Variable(torch.zeros(test_batch_size,1,args.max_prev_node)).cuda()
+            output_x_step = Variable(torch.ones(test_batch_size,1,1)).cuda()
+        else:
+            x_step = Variable(torch.zeros(test_batch_size,1,args.max_prev_node))
+            output_x_step = Variable(torch.ones(test_batch_size,1,1))
+        
         for j in range(min(args.max_prev_node,i+1)):
             output_y_pred_step = output(output_x_step)
             output_x_step = sample_sigmoid(output_y_pred_step, sample=True, sample_time=1)
             x_step[:,:,j:j+1] = output_x_step
-            output.hidden = Variable(output.hidden.data).cuda()
+            if torch.cuda.is_available():
+                output.hidden = Variable(output.hidden.data).cuda()
+            else:
+                output.hidden = Variable(output.hidden.data)
         y_pred_long[:, i:i + 1, :] = x_step
-        rnn.hidden = Variable(rnn.hidden.data).cuda()
+        if torch.cuda.is_available():
+            rnn.hidden = Variable(rnn.hidden.data).cuda()
+        else:
+            rnn.hidden = Variable(rnn.hidden.data)
     y_pred_long_data = y_pred_long.data.long()
 
     # save graphs as pickle
@@ -584,7 +615,10 @@ def train_rnn_forward_epoch(epoch, args, rnn, output, data_loader):
         h = pack_padded_sequence(h,y_len,batch_first=True).data # get packed hidden vector
         # reverse h
         idx = [i for i in range(h.size(0) - 1, -1, -1)]
-        idx = Variable(torch.LongTensor(idx)).cuda()
+        if torch.cuda.is_available():
+            idx = Variable(torch.LongTensor(idx)).cuda()
+        else:
+            idx = Variable(torch.LongTensor(idx))
         h = h.index_select(0, idx)
         hidden_null = Variable(torch.zeros(args.num_layers-1, h.size(0), h.size(1))).cuda()
         output.hidden = torch.cat((h.view(1,h.size(0),h.size(1)),hidden_null),dim=0) # num_layers, batch_size, hidden_size
@@ -684,6 +718,27 @@ def train(args, dataset_train, rnn, output):
 
 
 ########### for graph completion task
+def test_GraphRNN_VAE(args, rnn, output):
+    fname = args.model_save_path + args.fname + 'lstm_' + str(args.load_epoch) + '.dat'
+    rnn.load_state_dict(torch.load(fname))
+    fname = args.model_save_path + args.fname + 'output_' + str(args.load_epoch) + '.dat'
+    output.load_state_dict(torch.load(fname))
+
+    epoch = args.load_epoch
+    print('model loaded!, epoch: {}'.format(args.load_epoch))
+    G_pred = []
+    while len(G_pred)<args.test_total_size:
+        if 'GraphRNN_VAE' in args.note:
+            G_pred_step = test_vae_epoch(epoch, args, rnn, output, test_batch_size=args.test_batch_size,sample_time=1)
+        G_pred.extend(G_pred_step)
+        # save graphs
+        fname = args.graph_save_path + args.fname_pred + str(epoch) +'_'+str(1) + '_test.dat'
+        #print("Graph saved at - %s" %str(fname))
+        save_graph_list(G_pred, fname)
+    print('test done, graphs saved')
+
+
+########### for graph completion task
 def train_graph_completion(args, dataset_test, rnn, output):
     fname = args.model_save_path + args.fname + 'lstm_' + str(args.load_epoch) + '.dat'
     rnn.load_state_dict(torch.load(fname))
@@ -700,6 +755,7 @@ def train_graph_completion(args, dataset_test, rnn, output):
             G_pred = test_vae_partial_epoch(epoch, args, rnn, output, dataset_test,sample_time=sample_time)
         # save graphs
         fname = args.graph_save_path + args.fname_pred + str(epoch) +'_'+str(sample_time) + 'graph_completion.dat'
+        print("Graph saved at - %s" %str(fname))
         save_graph_list(G_pred, fname)
     print('graph completion done, graphs saved')
 
